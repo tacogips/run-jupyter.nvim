@@ -36,7 +36,7 @@ fn remove_trailing_block_comment_delimiter(s: String) -> String {
     }
 }
 
-pub struct RustParser {}
+pub struct RustParser;
 
 impl CodeParser for RustParser {
     fn parse(code: &str) -> Result<Option<CellSources>> {

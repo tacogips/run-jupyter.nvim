@@ -2,6 +2,7 @@ pub mod comment_extractor;
 pub mod error;
 pub mod python_parser;
 pub mod rust_parser;
+use jupyter_client::CellType;
 
 pub type Result<T> = std::result::Result<T, error::ParserError>;
 
@@ -30,6 +31,9 @@ impl CellSources {
         }
     }
 }
+
+//pub enum{
+//}
 
 pub struct CellSource {
     pub codes: Vec<String>,
