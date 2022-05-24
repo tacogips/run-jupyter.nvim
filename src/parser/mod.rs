@@ -5,14 +5,56 @@ pub mod rust_parser;
 
 pub type Result<T> = std::result::Result<T, error::ParserError>;
 
-struct CellSources {
-    cell_sources: Vec<CellSource>,
+pub struct CellSources {
+    pub cell_sources: Vec<CellSource>,
 }
 
-struct CellSource {
-    codes: Vec<String>,
+impl CellSources {
+    pub fn push(&mut self, c: CellSource) {
+        self.cell_sources.push(c)
+    }
+
+    pub fn len(&self) -> usize {
+        self.cell_sources.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.cell_sources.is_empty()
+    }
 }
 
-trait Parser {
-    fn parse(code: &str) -> CellSources;
+impl CellSources {
+    fn default() -> Self {
+        Self {
+            cell_sources: vec![],
+        }
+    }
+}
+
+pub struct CellSource {
+    pub codes: Vec<String>,
+}
+
+impl CellSource {
+    fn default() -> Self {
+        Self { codes: vec![] }
+    }
+}
+
+impl CellSource {
+    pub fn len(&self) -> usize {
+        self.codes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.codes.is_empty()
+    }
+
+    pub fn push(&mut self, s: String) {
+        self.codes.push(s)
+    }
+}
+
+trait CodeParser {
+    fn parse(code: &str) -> Result<Option<CellSources>>;
 }

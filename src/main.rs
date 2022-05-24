@@ -7,36 +7,43 @@ extern "C" {
 extern "C" {
     fn tree_sitter_rust() -> Language;
 }
+
 const code: &'static str = r#"
 
-
-//!
-
-/*
- * some
- * aaa
- */
-
-// line comment
-type Result<T> = std::result::Result<T, JupyterApiError>;
-
-pub struct KernelApiClient {
-    url: String,
-}
-
-const DEFAULT_TIMEOUT_SEC: u64 = 120;
-
-pub fn find_request_result(message: KernelResponse) -> Option<KernelResponse> {
-    match message.msg_type {
-        MessageType::ExecuteReply | MessageType::ExecuteResult | MessageType::Error => {
-            Some(message)
-        }
-        _ => None,
-    }
-}
+aa
 
 "#;
 
+//const code: &'static str = r#"
+//
+//
+////!
+//
+///*
+// * some
+// * aaa
+// */
+//
+//// line comment
+//type Result<T> = std::result::Result<T, JupyterApiError>;
+//
+//pub struct KernelApiClient {
+//    url: String,
+//}
+//
+//const DEFAULT_TIMEOUT_SEC: u64 = 120;
+//
+//pub fn find_request_result(message: KernelResponse) -> Option<KernelResponse> {
+//    match message.msg_type {
+//        MessageType::ExecuteReply | MessageType::ExecuteResult | MessageType::Error => {
+//            Some(message)
+//        }
+//        _ => None,
+//    }
+//}
+//
+//"#;
+//
 fn main() {
     //let python_lang = unsafe { tree_sitter_python() };
     //let julia_lang = unsafe { tree_sitter_julia() };

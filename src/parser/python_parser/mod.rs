@@ -1,7 +1,7 @@
-use tree_sitter::{Language, Parser};
-extern "C" {
-    fn tree_sitter_python() -> Language;
-}
+//use tree_sitter::{Language, Parser};
+//extern "C" {
+//    fn tree_sitter_python() -> Language;
+//}
 
 //fn main() {
 //    let python_lang = unsafe { tree_sitter_python() };

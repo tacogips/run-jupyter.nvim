@@ -5,13 +5,29 @@ fn extract_commands_from_comment(coment: &str) -> Option<Vec<String>> {
     unimplemented!()
 }
 
-struct CommentInterpreter<'a> {
+pub struct CommentInterpreter<'a> {
     comment: &'a [u8],
     current_index: usize,
 }
 
 const COMMAND_BEGIN_DELIMITER_CHAR: u8 = b'%';
 const NEW_LINE: u8 = b'\n';
+
+#[derive(Debug, PartialEq)]
+pub enum CommentOperator {
+    Command(String),
+    Separator,
+}
+
+impl CommentOperator {
+    pub fn from_string(s: String) -> CommentOperator {
+        if s.contains("---") {
+            CommentOperator::Separator
+        } else {
+            CommentOperator::Command(s)
+        }
+    }
+}
 
 impl<'a> CommentInterpreter<'a> {
     pub fn new(comment: &'a str) -> CommentInterpreter<'a> {
@@ -48,16 +64,16 @@ impl<'a> CommentInterpreter<'a> {
         result
     }
 
-    pub fn parse_command(&mut self) -> Result<Option<String>> {
+    pub fn next(&mut self) -> Result<Option<CommentOperator>> {
         while let Some(peeked_char) = self.peek(1) {
             if *peeked_char == COMMAND_BEGIN_DELIMITER_CHAR {
                 if let Some(peeked_char_2) = self.peek(2) {
                     if *peeked_char_2 == COMMAND_BEGIN_DELIMITER_CHAR {
                         self.shift(3);
                         if let Some(command) = self.chomp_until_line_end() {
-                            return Ok(Some(String::from_utf8(
-                                command.into_iter().cloned().collect(),
-                            )?));
+                            let str_value =
+                                String::from_utf8(command.into_iter().cloned().collect())?;
+                            return Ok(Some(CommentOperator::from_string(str_value)));
                         }
                     }
                 }
@@ -127,17 +143,25 @@ mod test {
             this is not command abcdefghi"#;
         let mut interpreter = CommentInterpreter::new(data);
         {
-            let parsed = interpreter.parse_command().unwrap();
-            assert_eq!(Some(" this is command".to_string()), parsed);
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(
+                Some(CommentOperator::Command(" this is command".to_string())),
+                parsed
+            );
         }
 
         {
-            let parsed = interpreter.parse_command().unwrap();
-            assert_eq!(Some("  this another is command".to_string()), parsed);
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(
+                Some(CommentOperator::Command(
+                    "  this another is command".to_string()
+                )),
+                parsed
+            );
         }
 
         {
-            let parsed = interpreter.parse_command().unwrap();
+            let parsed = interpreter.next().unwrap();
             assert_eq!(None, parsed);
         }
     }
@@ -150,22 +174,53 @@ mod test {
             %% "#;
         let mut interpreter = CommentInterpreter::new(data);
         {
-            let parsed = interpreter.parse_command().unwrap();
-            assert_eq!(Some(" this is command".to_string()), parsed);
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(
+                Some(CommentOperator::Command(" this is command".to_string())),
+                parsed
+            );
         }
 
         {
-            let parsed = interpreter.parse_command().unwrap();
-            assert_eq!(Some(" aaa".to_string()), parsed);
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(Some(CommentOperator::Command(" aaa".to_string())), parsed);
         }
 
         {
-            let parsed = interpreter.parse_command().unwrap();
-            assert_eq!(Some(" ".to_string()), parsed);
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(Some(CommentOperator::Command(" ".to_string())), parsed);
         }
 
         {
-            let parsed = interpreter.parse_command().unwrap();
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(None, parsed);
+        }
+    }
+
+    #[test]
+    fn test_extact_separator_1() {
+        let data = r#"
+            %% ---
+            this is not command abcdefghi %% aaa
+            %% "#;
+        let mut interpreter = CommentInterpreter::new(data);
+        {
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(Some(CommentOperator::Separator), parsed);
+        }
+
+        {
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(Some(CommentOperator::Command(" aaa".to_string())), parsed);
+        }
+
+        {
+            let parsed = interpreter.next().unwrap();
+            assert_eq!(Some(CommentOperator::Command(" ".to_string())), parsed);
+        }
+
+        {
+            let parsed = interpreter.next().unwrap();
             assert_eq!(None, parsed);
         }
     }
