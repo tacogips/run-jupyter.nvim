@@ -2,13 +2,15 @@
 name = "run-jupyter"
 version = "0.1.0"
 edition = "2021"
-build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 tree-sitter = "0.20"
+# tree-sitter-julia = { git = "https://github.com/tree-sitter/tree-sitter-julia", tag = "v0.19.0" }
+# tree-sitter-python = { git = "https://github.com/tree-sitter/tree-sitter-python", tag = "v0.19.0" }
+# tree-sitter-rust = { git = "https://github.com/tree-sitter/tree-sitter-rust", tag = "v0.19.0" }
+
 
 [build-dependencies]
 cc="*"
-

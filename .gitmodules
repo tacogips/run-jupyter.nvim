@@ -1,3 +1,9 @@
 [submodule "treesitter/tree-sitter-python"]
 	path = treesitter/tree-sitter-python
 	url = https://github.com/tree-sitter/tree-sitter-python
+[submodule "treesitter/tree-sitter-julia"]
+	path = treesitter/tree-sitter-julia
+	url = https://github.com/tree-sitter/tree-sitter-julia
+[submodule "treesitter/tree-sitter-rust"]
+	path = treesitter/tree-sitter-rust
+	url = https://github.com/tree-sitter/tree-sitter-rust
