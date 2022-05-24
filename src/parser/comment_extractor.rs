@@ -25,6 +25,10 @@ impl<'a> CommentInterpreter<'a> {
         self.comment.get(self.current_index + 1)
     }
 
+    fn peek2(&self) -> Option<&u8> {
+        self.comment.get(self.current_index + 2)
+    }
+
     fn chomp(&mut self) -> Option<&u8> {
         let current_char = self.comment.get(self.current_index);
         self.current_index += 1;
@@ -36,10 +40,10 @@ impl<'a> CommentInterpreter<'a> {
     }
 
     pub fn extact_command(&mut self) -> Result<Option<String>> {
-        while let Some(current_char) = self.chomp() {
-            if *current_char == COMMAND_BEGIN_DELIMITER_CHAR {
-                if let Some(peeked_char) = self.peek() {
-                    if *current_char == COMMAND_BEGIN_DELIMITER_CHAR {
+        while let Some(peeked_char) = self.peek() {
+            if *peeked_char == COMMAND_BEGIN_DELIMITER_CHAR {
+                if let Some(peeked_char_2) = self.peek2() {
+                    if *peeked_char_2 == COMMAND_BEGIN_DELIMITER_CHAR {
                         let _ = self.chomp();
                         let _ = self.chomp();
                         if let Some(command) = self.chomp_until_line_end() {
@@ -50,6 +54,7 @@ impl<'a> CommentInterpreter<'a> {
                     }
                 }
             }
+            let _ = self.chomp();
         }
         Ok(None)
     }
