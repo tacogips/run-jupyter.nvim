@@ -1,8 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn main() {
     build_python();
-    build_julia();
     build_rust();
 }
 fn build_python() {
@@ -30,8 +29,6 @@ fn build_python() {
     println!("cargo:rerun-if-changed={}", scanner_path.to_str().unwrap());
     cpp_config.compile("scanner");
 }
-
-fn build_julia() {}
 
 fn build_rust() {
     let src_dir: PathBuf = ["treesitter", "tree-sitter-rust", "src"].iter().collect();

@@ -1,7 +1,7 @@
 use tree_sitter::{Language, Parser};
 extern "C" {
     fn tree_sitter_python() -> Language;
-    fn tree_sitter_julia() -> Language;
+    //fn tree_sitter_julia() -> Language;
     fn tree_sitter_rust() -> Language;
 }
 
@@ -10,7 +10,7 @@ fn main() {
     //let julia_lang = unsafe { tree_sitter_julia() };
     let rust_lang = unsafe { tree_sitter_rust() };
     let mut parser = Parser::new();
-    //parser.set_language(python_lang).unwrap();
+    parser.set_language(python_lang).unwrap();
     //parser.set_language(python_lang).unwrap();
     ////parser.set_language(julia_lang).unwrap();
     //parser.set_language(rust_lang).unwrap();
