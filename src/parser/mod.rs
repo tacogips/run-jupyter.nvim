@@ -20,7 +20,7 @@ impl CellSources {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.cell_sources.is_empty()
+        self.len() == 0
     }
 }
 
@@ -32,16 +32,17 @@ impl CellSources {
     }
 }
 
-//pub enum{
-//}
-
 pub struct CellSource {
+    pub cell_type: CellType,
     pub codes: Vec<String>,
 }
 
 impl CellSource {
     fn default() -> Self {
-        Self { codes: vec![] }
+        Self {
+            cell_type: CellType::Code,
+            codes: vec![],
+        }
     }
 }
 
@@ -51,7 +52,7 @@ impl CellSource {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.codes.is_empty()
+        self.len() == 0
     }
 
     pub fn push(&mut self, s: String) {
