@@ -40,7 +40,7 @@ pub struct RustParser;
 
 impl CodeParser for RustParser {
     fn parse(&mut self, code: &str) -> Result<Option<CellSources>> {
-        let mut sources = CellSources::default();
+        let mut cells = CellSources::default();
         let mut current_source = CellSource::new_code(vec![]);
         let mut parser = Parser::new();
         parser.set_language(rust_lang())?;
@@ -55,8 +55,8 @@ impl CodeParser for RustParser {
                     let kind = Kind::from_kind_id(each_child.kind_id());
                     match kind {
                         Kind::LineComment | Kind::BlockComment => {
-                            let comment = each_child.utf8_text(code.as_bytes())?;
-                            let mut comment_interpreter = CommentInterpreter::new(comment);
+                            let comment_str = each_child.utf8_text(code.as_bytes())?;
+                            let mut comment_interpreter = CommentInterpreter::new(comment_str);
                             while let Some(comment_ope) = comment_interpreter.next()? {
                                 match comment_ope {
                                     CommentOperator::Command(command) => {
@@ -66,11 +66,17 @@ impl CodeParser for RustParser {
                                             command
                                         };
 
-                                        current_source.push(command)
+                                        current_source.push(comment_str.to_string());
+                                        cells.push(current_source);
+
+                                        current_source = CellSource::new_code(vec![command]);
+                                        cells.push(current_source);
+
+                                        current_source = CellSource::new_code(vec![]);
                                     }
                                     CommentOperator::Separator => {
                                         if !current_source.is_empty() {
-                                            sources.push(current_source);
+                                            cells.push(current_source);
                                         }
                                         current_source = CellSource::default();
                                     }
@@ -85,9 +91,9 @@ impl CodeParser for RustParser {
                 }
 
                 if !current_source.is_empty() {
-                    sources.push(current_source);
+                    cells.push(current_source);
                 }
-                Ok(Some(sources))
+                Ok(Some(cells))
             }
         }
     }
@@ -99,7 +105,7 @@ mod test {
     use crate::parser::CodeParser;
 
     #[test]
-    fn test_func_name() {
+    fn test_parse_1() {
         let mut parser = RustParser;
         let code = r#"
 
@@ -118,6 +124,26 @@ mod test {
                 println!("{}","aa");
             }"#
             .to_string(),
+        ]));
+
+        assert_eq!(parsed, sources);
+    }
+
+    #[test]
+    fn test_parse_2() {
+        let mut parser = RustParser;
+        let code = r#"// %% :dep tokio
+let val =  "ss";
+val"#;
+
+        let parsed = parser.parse(code).unwrap().unwrap();
+
+        let mut sources = CellSources::default();
+        sources.push(CellSource::new_code(vec!["// %% :dep tokio".to_string()]));
+        sources.push(CellSource::new_code(vec![" :dep tokio".to_string()]));
+        sources.push(CellSource::new_code(vec![
+            r#"let val =  "ss";"#.to_string(),
+            r#"val"#.to_string(),
         ]));
 
         assert_eq!(parsed, sources);
