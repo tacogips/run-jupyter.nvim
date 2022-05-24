@@ -6,6 +6,7 @@ use jupyter_client::CellType;
 
 pub type Result<T> = std::result::Result<T, error::ParserError>;
 
+#[derive(Debug, PartialEq)]
 pub struct CellSources {
     pub cell_sources: Vec<CellSource>,
 }
@@ -24,7 +25,7 @@ impl CellSources {
     }
 }
 
-impl CellSources {
+impl Default for CellSources {
     fn default() -> Self {
         Self {
             cell_sources: vec![],
@@ -32,12 +33,13 @@ impl CellSources {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct CellSource {
     pub cell_type: CellType,
     pub codes: Vec<String>,
 }
 
-impl CellSource {
+impl Default for CellSource {
     fn default() -> Self {
         Self {
             cell_type: CellType::Code,
@@ -47,6 +49,13 @@ impl CellSource {
 }
 
 impl CellSource {
+    pub fn new_code(codes: Vec<String>) -> Self {
+        Self {
+            cell_type: CellType::Code,
+            codes,
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.codes.len()
     }
@@ -61,5 +70,5 @@ impl CellSource {
 }
 
 trait CodeParser {
-    fn parse(code: &str) -> Result<Option<CellSources>>;
+    fn parse(&mut self, code: &str) -> Result<Option<CellSources>>;
 }
