@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 tree-sitter = "0.20"
+jupyter-client = { git = "https://github.com/tacogips/jupyter-client-rs", branch = "main"}
+thiserror = "1.0"
 
 [build-dependencies]
 cc="*"
