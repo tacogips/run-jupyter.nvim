@@ -9,6 +9,14 @@ edition = "2021"
 tree-sitter = "0.20"
 jupyter-client = { git = "https://github.com/tacogips/jupyter-client-rs", branch = "main"}
 thiserror = "1.0"
+mlua = { version = "0.7", features = ["luajit", "vendored", "module", "macros", "send", "async"] }
 
 [build-dependencies]
 cc="*"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+lto = true
