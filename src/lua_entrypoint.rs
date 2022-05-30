@@ -2,7 +2,7 @@ use mlua::prelude::*;
 
 async fn start_kernel(
     _lua: &Lua,
-    (jupyter_url, kernel_name): (String, String),
+    (jupyter_base_url, kernel_name): (String, String),
 ) -> LuaResult<String> {
     //let result = Runtime::new().unwrap().block_on(build_client_and_request(
     //    &cmd_name,
@@ -16,7 +16,7 @@ async fn start_kernel(
     unimplemented!()
 }
 
-async fn list_kernels(_lua: &Lua, jupyter_url: String) -> LuaResult<Vec<String>> {
+async fn list_kernels(_lua: &Lua, jupyter_base_url: String) -> LuaResult<Vec<String>> {
     unimplemented!()
 }
 
