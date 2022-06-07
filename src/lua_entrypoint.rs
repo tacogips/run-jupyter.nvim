@@ -101,39 +101,36 @@ async fn run_code(
         code
     };
 
-    let result = {
-        let response = kernel_client
-            .run_code(code.into(), None)
-            .await
-            .map_err(api_error_to_lua_error)?;
-        let contents = response.as_content().map_err(api_error_to_lua_error)?;
-        match contents {
-            None => None,
-            Some(contents) => {
-                let content_data = match contents {
-                    KernelContent::DisplayData(display_data) => Some(display_data.data),
-                    KernelContent::ExecuteResultContent(result_content) => {
-                        Some(result_content.data)
-                    }
-                    _ => None,
-                };
+    let response = kernel_client
+        .run_code(code.into(), None)
+        .await
+        .map_err(api_error_to_lua_error)?;
+    let contents = response.as_content().map_err(api_error_to_lua_error)?;
+    let result = match contents {
+        None => None,
+        Some(contents) => {
+            let content_data = match contents {
+                KernelContent::DisplayData(display_data) => Some(display_data.data),
+                KernelContent::ExecuteResultContent(result_content) => Some(result_content.data),
+                _ => None,
+            };
 
-                match content_data {
-                    Some(data) => {
-                        let response_table = lua.create_table()?;
-                        if let Some(image) = data.image_png {
-                            response_table.set(RESEPONSE_TABLE_KEY_PNG, image)?;
-                        } else if let Some(text_plain) = data.text_plain {
-                            response_table.set(RESEPONSE_TABLE_KEY_TEXT, text_plain)?;
-                        }
-
-                        Some(response_table)
+            match content_data {
+                Some(data) => {
+                    let response_table = lua.create_table()?;
+                    if let Some(image) = data.image_png {
+                        response_table.set(RESEPONSE_TABLE_KEY_PNG, image)?;
+                    } else if let Some(text_plain) = data.text_plain {
+                        response_table.set(RESEPONSE_TABLE_KEY_TEXT, text_plain)?;
                     }
-                    None => None,
+
+                    Some(response_table)
                 }
+                None => None,
             }
         }
     };
+
     LuaResult::Ok(result)
 }
 
