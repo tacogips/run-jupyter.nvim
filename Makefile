@@ -13,13 +13,7 @@ gitsubmodule:
 
 .PHONY: test
 test:
-	make test-jupyter-up
 	make cargo-test
-
-.PHONY: test-jupyter-up
-test-jupyter-up:
-	docker compose down
-	docker compose up --detach --quiet-pull --wait
 
 .PHONY: cargo-test
 cargo-test:
