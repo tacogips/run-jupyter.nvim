@@ -12,4 +12,7 @@ pub enum ParserError {
 
     #[error("language error {0}")]
     LanguageError(#[from] LanguageError),
+
+    #[error("unsupprted kernel {0}")]
+    UnsuppotedKernel(String),
 }

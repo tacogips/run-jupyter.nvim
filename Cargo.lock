@@ -446,7 +446,7 @@ dependencies = [
 [[package]]
 name = "jupyter-client"
 version = "0.1.0"
-source = "git+https://github.com/tacogips/jupyter-client-rs?branch=main#5f102c806fd82a517a438a6acfa7027cbf09e34b"
+source = "git+https://github.com/tacogips/jupyter-client-rs?branch=main#cc79943c355ef6e9966289022bd559af6055b7e9"
 dependencies = [
  "futures",
  "futures-util",

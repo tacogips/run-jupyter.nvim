@@ -1,10 +1,27 @@
 pub mod comment_extractor;
 pub mod error;
-pub mod python_parser;
 pub mod rust_parser;
+
 use jupyter_client::CellType;
 
-pub type Result<T> = std::result::Result<T, error::ParserError>;
+type Result<T> = std::result::Result<T, error::ParserError>;
+
+pub enum ParsableKernel {
+    Rust,
+    Python3,
+}
+
+impl ParsableKernel {
+    pub fn try_from_str(kernel: &str) -> Result<Self> {
+        match kernel {
+            "rust" => Ok(Self::Rust),
+            "python3" => Ok(Self::Python3),
+            other => Err(error::ParserError::UnsuppotedKernel(format!(
+                "Not supported kernel :{other}"
+            ))),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct CellSources {
@@ -14,14 +31,6 @@ pub struct CellSources {
 impl CellSources {
     pub fn push(&mut self, c: CellSource) {
         self.cell_sources.push(c)
-    }
-
-    pub fn len(&self) -> usize {
-        self.cell_sources.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 }
 

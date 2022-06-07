@@ -1,3 +1,4 @@
+use super::parser::*;
 use jupyter_client::*;
 use mlua::prelude::*;
 use mlua::Error as LuaError;
@@ -67,28 +68,56 @@ async fn list_kernel_names(_lua: &Lua, jupyter_base_url: String) -> LuaResult<Ve
         .collect())
 }
 
+const RESEPONSE_TABLE_KEY_PNG: &str = "png";
+const RESEPONSE_TABLE_KEY_TEXT: &str = "text";
+
 async fn run_code(
     lua: &Lua,
     (jupyter_base_url, kernel_name, code): (String, String, String),
 ) -> LuaResult<Option<LuaTable<'_>>> {
     let kernel_client = get_kernel_client(&jupyter_base_url, &kernel_name).await?;
-    let response = kernel_client
-        .run_code(code.into(), None)
-        .await
-        .map_err(to_lua_error)?;
-    let contents = response.as_content().map_err(to_lua_error)?;
-    match contents {
-        None => Ok(None),
-        Some(contents) => {
-            let mut response_table = lua.create_table()?;
-            match contents {
-                KernelContent::DisplayData(display_data) => {}
-                KernelContent::ExecuteResultContent(result_content) => {}
-            };
 
-            Ok(Some(response_table))
-        }
+    let codes = if let Ok(parsable_kernel) = ParsableKernel::try_from_str(&kernel_name) {
+        vec![code]
+    } else {
+        vec![code]
+    };
+
+    let mut result = None;
+    for each_code in codes {
+        let response = kernel_client
+            .run_code(each_code.into(), None)
+            .await
+            .map_err(to_lua_error)?;
+        let contents = response.as_content().map_err(to_lua_error)?;
+        result = match contents {
+            None => None,
+            Some(contents) => {
+                let content_data = match contents {
+                    KernelContent::DisplayData(display_data) => Some(display_data.data),
+                    KernelContent::ExecuteResultContent(result_content) => {
+                        Some(result_content.data)
+                    }
+                    _ => None,
+                };
+
+                match content_data {
+                    Some(data) => {
+                        let response_table = lua.create_table()?;
+                        if let Some(image) = data.image_png {
+                            response_table.set(RESEPONSE_TABLE_KEY_PNG, image)?;
+                        } else if let Some(text_plain) = data.text_plain {
+                            response_table.set(RESEPONSE_TABLE_KEY_TEXT, text_plain)?;
+                        }
+
+                        Some(response_table)
+                    }
+                    None => None,
+                }
+            }
+        };
     }
+    LuaResult::Ok(result)
 }
 
 #[mlua::lua_module]

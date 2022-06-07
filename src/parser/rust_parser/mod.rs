@@ -148,4 +148,26 @@ val"#;
 
         assert_eq!(parsed, sources);
     }
+
+    #[test]
+    fn test_parse_3() {
+        let mut parser = RustParser;
+        let code = r#"// %% :dep tokio
+let val =  "ss";
+// %% ----
+val"#;
+
+        let parsed = parser.parse(code).unwrap().unwrap();
+
+        let mut sources = CellSources::default();
+        sources.push(CellSource::new_code(vec!["// %% :dep tokio".to_string()]));
+        sources.push(CellSource::new_code(vec![" :dep tokio".to_string()]));
+        sources.push(CellSource::new_code(
+            vec![r#"let val =  "ss";"#.to_string()],
+        ));
+
+        sources.push(CellSource::new_code(vec![r#"val"#.to_string()]));
+
+        assert_eq!(parsed, sources);
+    }
 }

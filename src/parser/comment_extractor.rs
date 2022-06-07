@@ -1,10 +1,6 @@
 use super::error;
 
 pub type Result<T> = std::result::Result<T, error::ParserError>;
-fn extract_commands_from_comment(coment: &str) -> Option<Vec<String>> {
-    unimplemented!()
-}
-
 pub struct CommentInterpreter<'a> {
     comment: &'a [u8],
     current_index: usize,
@@ -12,6 +8,7 @@ pub struct CommentInterpreter<'a> {
 
 const COMMAND_BEGIN_DELIMITER_CHAR: u8 = b'%';
 const NEW_LINE: u8 = b'\n';
+const SEPARATOR_STRING: &str = "---";
 
 #[derive(Debug, PartialEq)]
 pub enum CommentOperator {
@@ -21,7 +18,7 @@ pub enum CommentOperator {
 
 impl CommentOperator {
     pub fn from_string(s: String) -> CommentOperator {
-        if s.contains("---") {
+        if s.contains(SEPARATOR_STRING) {
             CommentOperator::Separator
         } else {
             CommentOperator::Command(s)
