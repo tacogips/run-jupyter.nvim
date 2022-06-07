@@ -12,6 +12,8 @@ jupyter-client = { git = "https://github.com/tacogips/jupyter-client-rs", branch
 thiserror = "1.0"
 mlua = { version = "0.7", features = ["luajit", "vendored", "module", "macros", "send", "async"] }
 
+tokio = {version = "1.19" , features = ["rt-multi-thread"]}
+
 [build-dependencies]
 cc="*"
 
