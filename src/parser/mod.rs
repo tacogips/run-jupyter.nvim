@@ -2,7 +2,9 @@ pub mod comment_extractor;
 pub mod error;
 pub mod rust_parser;
 
+pub use error::*;
 use jupyter_client::CellType;
+pub use rust_parser::*;
 
 type Result<T> = std::result::Result<T, error::ParserError>;
 
@@ -31,6 +33,14 @@ pub struct CellSources {
 impl CellSources {
     pub fn push(&mut self, c: CellSource) {
         self.cell_sources.push(c)
+    }
+
+    pub fn as_one_line_code(&self) -> String {
+        self.cell_sources
+            .iter()
+            .map(|cell| cell.as_one_line_code().to_string())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 
@@ -76,8 +86,12 @@ impl CellSource {
     pub fn push(&mut self, s: String) {
         self.codes.push(s)
     }
+
+    pub fn as_one_line_code(&self) -> String {
+        self.codes.join("\n")
+    }
 }
 
-trait CodeParser {
+pub trait CodeParser {
     fn parse(&mut self, code: &str) -> Result<Option<CellSources>>;
 }

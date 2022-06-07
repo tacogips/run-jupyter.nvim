@@ -4,7 +4,11 @@ use mlua::prelude::*;
 use mlua::Error as LuaError;
 use std::sync::Arc;
 
-fn to_lua_error(e: JupyterApiError) -> LuaError {
+fn api_error_to_lua_error(e: JupyterApiError) -> LuaError {
+    LuaError::ExternalError(Arc::new(e))
+}
+
+fn parser_error_to_lua_error(e: ParserError) -> LuaError {
     LuaError::ExternalError(Arc::new(e))
 }
 
@@ -22,7 +26,7 @@ async fn start_kernel(
     jupyter_client
         .start_kernel(kernel_req)
         .await
-        .map_err(to_lua_error)?;
+        .map_err(api_error_to_lua_error)?;
     Ok(())
 }
 
@@ -35,7 +39,7 @@ pub enum JupyterRunnerError {
 }
 
 fn get_jupyter_client(jupyter_base_url: &str) -> Result<JupyterClient, LuaError> {
-    JupyterClient::new(jupyter_base_url, None, None).map_err(to_lua_error)
+    JupyterClient::new(jupyter_base_url, None, None).map_err(api_error_to_lua_error)
 }
 
 async fn get_kernel_client(
@@ -44,7 +48,10 @@ async fn get_kernel_client(
 ) -> Result<KernelApiClient, LuaError> {
     let jupyter_client = get_jupyter_client(jupyter_base_url)?;
 
-    let kernels = jupyter_client.get_kernels().await.map_err(to_lua_error)?;
+    let kernels = jupyter_client
+        .get_kernels()
+        .await
+        .map_err(api_error_to_lua_error)?;
 
     let kernel = kernels.iter().find(|each| each.name == "rust");
     match kernel {
@@ -53,7 +60,7 @@ async fn get_kernel_client(
         ))),
         Some(kernel) => Ok(jupyter_client
             .new_kernel_client(kernel)
-            .map_err(to_lua_error)?),
+            .map_err(api_error_to_lua_error)?),
     }
 }
 
@@ -62,7 +69,7 @@ async fn list_kernel_names(_lua: &Lua, jupyter_base_url: String) -> LuaResult<Ve
     Ok(jupyter_client
         .get_kernels()
         .await
-        .map_err(to_lua_error)?
+        .map_err(api_error_to_lua_error)?
         .into_iter()
         .map(|kernel| kernel.name)
         .collect())
@@ -77,20 +84,30 @@ async fn run_code(
 ) -> LuaResult<Option<LuaTable<'_>>> {
     let kernel_client = get_kernel_client(&jupyter_base_url, &kernel_name).await?;
 
-    let codes = if let Ok(parsable_kernel) = ParsableKernel::try_from_str(&kernel_name) {
-        vec![code]
+    let code = if let Ok(parsable_kernel) = ParsableKernel::try_from_str(&kernel_name) {
+        let parsed_code = match parsable_kernel {
+            ParsableKernel::Rust => RustParser.parse(&code).map_err(parser_error_to_lua_error)?,
+            ParsableKernel::Python3 => {
+                return Err(parser_error_to_lua_error(ParserError::UnsuppotedKernel(
+                    "python".to_string(),
+                )))
+            }
+        };
+        match parsed_code {
+            Some(cell_sources) => cell_sources.as_one_line_code(),
+            None => return Ok(None),
+        }
     } else {
-        vec![code]
+        code
     };
 
-    let mut result = None;
-    for each_code in codes {
+    let result = {
         let response = kernel_client
-            .run_code(each_code.into(), None)
+            .run_code(code.into(), None)
             .await
-            .map_err(to_lua_error)?;
-        let contents = response.as_content().map_err(to_lua_error)?;
-        result = match contents {
+            .map_err(api_error_to_lua_error)?;
+        let contents = response.as_content().map_err(api_error_to_lua_error)?;
+        match contents {
             None => None,
             Some(contents) => {
                 let content_data = match contents {
@@ -115,8 +132,8 @@ async fn run_code(
                     None => None,
                 }
             }
-        };
-    }
+        }
+    };
     LuaResult::Ok(result)
 }
 
