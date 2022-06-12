@@ -1,8 +1,6 @@
 use super::parser::*;
 use jupyter_client::*;
 use mlua::prelude::*;
-use mlua::Error as LuaError;
-use std::sync::Arc;
 use thiserror::Error;
 use tokio::runtime::Runtime; // 0.3.5
 
@@ -57,6 +55,24 @@ fn start_kernel(
     }
 }
 
+fn interrupt_kernel(
+    lua: &Lua,
+    (jupyter_base_url, kernel_name): (String, String),
+) -> LuaResult<LuaTable<'_>> {
+    match get_jupyter_client(&jupyter_base_url) {
+        Err(e) => Ok(to_error_table(&lua, e)?),
+        Ok(jupyter_client) => {
+            match Runtime::new()
+                .unwrap()
+                .block_on(jupyter_client.interrupt_kernel(&kernel_name))
+            {
+                Ok(()) => Ok(empty_table(&lua)?),
+                Err(e) => Ok(to_error_table(&lua, e.into())?),
+            }
+        }
+    }
+}
+
 fn get_jupyter_client(jupyter_base_url: &str) -> Result<JupyterClient, JupyterRunnerError> {
     let client = JupyterClient::new(jupyter_base_url, None, None)?;
     Ok(client)
@@ -68,7 +84,7 @@ async fn get_kernel_client(
 ) -> Result<Option<KernelApiClient>, JupyterRunnerError> {
     let jupyter_client = get_jupyter_client(jupyter_base_url)?;
 
-    let kernels = jupyter_client.get_kernels().await?;
+    let kernels = jupyter_client.get_running_kernels().await?;
 
     let kernel = kernels.iter().find(|each| each.name == kernel_name);
     match kernel {
@@ -77,7 +93,7 @@ async fn get_kernel_client(
     }
 }
 
-fn list_kernels(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTable<'_>> {
+fn list_running_kernels(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTable<'_>> {
     let jupyter_client = match get_jupyter_client(&jupyter_base_url) {
         Err(e) => return Ok(to_error_table(&lua, e.into())?),
         Ok(jupyter_client) => jupyter_client,
@@ -85,13 +101,39 @@ fn list_kernels(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTable<'_>> 
 
     match Runtime::new()
         .unwrap()
-        .block_on(jupyter_client.get_kernels())
+        .block_on(jupyter_client.get_running_kernels())
     {
         Err(e) => Ok(to_error_table(&lua, e.into())?),
         Ok(kernels) => {
             let kernel_names = kernels
                 .into_iter()
                 .map(|kernel| kernel.name)
+                .collect::<Vec<String>>();
+
+            let response_table = lua.create_table()?;
+            response_table.set(RESEPONSE_TABLE_KEY_DATA, kernel_names)?;
+            Ok(response_table)
+        }
+    }
+}
+
+fn list_kernel_names(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTable<'_>> {
+    let jupyter_client = match get_jupyter_client(&jupyter_base_url) {
+        Err(e) => return Ok(to_error_table(&lua, e.into())?),
+        Ok(jupyter_client) => jupyter_client,
+    };
+
+    match Runtime::new()
+        .unwrap()
+        .block_on(jupyter_client.get_kernel_specs())
+    {
+        Err(e) => Ok(to_error_table(&lua, e.into())?),
+        Ok(kernels) => {
+            let kernel_names = kernels
+                .kernelspecs
+                .values()
+                .into_iter()
+                .map(|kernel| kernel.name.to_string())
                 .collect::<Vec<String>>();
 
             let response_table = lua.create_table()?;
@@ -187,7 +229,12 @@ fn librun_jupyter(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
 
     exports.set("start_kernel", lua.create_function(start_kernel)?)?;
-    exports.set("list_kernels", lua.create_function(list_kernels)?)?;
+    exports.set("interuppt_kernel", lua.create_function(interrupt_kernel)?)?;
+    exports.set(
+        "list_running_kernels",
+        lua.create_function(list_running_kernels)?,
+    )?;
+    exports.set("list_kernel_names", lua.create_function(list_kernel_names)?)?;
     exports.set("run_code", lua.create_function(run_code)?)?;
     Ok(exports)
 }
