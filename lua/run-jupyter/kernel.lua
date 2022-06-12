@@ -23,8 +23,8 @@ local function start_kernel(kernel_name)
 	return jupyter_client.start_kernel(config.get().jupyter.endpoint, kernel_name)
 end
 
-local function interrupt_kernel(kernel_name)
-	return jupyter_client.interrupt_kernel(config.get().jupyter.endpoint, kernel_name)
+local function delete_kernel(kernel_id)
+	return jupyter_client.delete_kernel(config.get().jupyter.endpoint, kernel_id)
 end
 
 local function get_running_kernels_or_error()
@@ -36,7 +36,7 @@ local function get_running_kernels_or_error()
 			return
 		elseif k == "data" then
 			for k, v in pairs(v) do
-				running_kernel_table[v] = v
+				running_kernel_table[k] = v
 			end
 		end
 	end
@@ -47,9 +47,14 @@ end
 local function running_kernel_candidates()
 	local result = {}
 
+	local running_kernel_name_table = {}
 	local running_kernel_table = get_running_kernels_or_error()
 	if running_kernel_table["error"] ~= nil then
 		return running_kernel_table
+	end
+
+	for _, name in pairs(running_kernel_table) do
+		table.insert(running_kernel_name_table, name)
 	end
 
 	local all_kernels = get_all_kernel_names()
@@ -59,7 +64,7 @@ local function running_kernel_candidates()
 			return
 		elseif k == "data" then
 			for k, v in pairs(v) do
-				if running_kernel_table[v] ~= nil then
+				if running_kernel_name_table[v] ~= nil then
 					table.insert(result, v .. running_kernel_surffix)
 				else
 					table.insert(result, v)
@@ -97,14 +102,14 @@ function M.open_start_kernel_selection()
 	selector()
 end
 
-function M.open_interrupt_kernel_selection()
+function M.open_kill_kernel_selection()
 	local running_kernel_table = get_running_kernels_or_error()
 	if running_kernel_table["error"] ~= nil then
 		return running_kernel_table
 	end
 	local running_kernel_array = {}
-	for k, v in pairs(running_kernel_table) do
-		table.insert(running_kernel_array, v)
+	for id, name in pairs(running_kernel_table) do
+		table.insert(running_kernel_array, id .. "<" .. name .. ">")
 	end
 
 	local selector = function(opts)
@@ -120,7 +125,8 @@ function M.open_interrupt_kernel_selection()
 					actions.close(prompt_bufnr)
 					local selection = action_state.get_selected_entry()
 					local selected_kernel = selection[1]
-					interrupt_kernel(selected_kernel)
+					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "")
+					delete_kernel(selected_kernel_id)
 				end)
 				return true
 			end,

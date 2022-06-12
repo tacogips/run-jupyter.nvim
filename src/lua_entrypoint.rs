@@ -73,6 +73,24 @@ fn interrupt_kernel(
     }
 }
 
+fn delete_kernel(
+    lua: &Lua,
+    (jupyter_base_url, kernel_name): (String, String),
+) -> LuaResult<LuaTable<'_>> {
+    match get_jupyter_client(&jupyter_base_url) {
+        Err(e) => Ok(to_error_table(&lua, e)?),
+        Ok(jupyter_client) => {
+            match Runtime::new()
+                .unwrap()
+                .block_on(jupyter_client.delete_kernel(&kernel_name))
+            {
+                Ok(()) => Ok(empty_table(&lua)?),
+                Err(e) => Ok(to_error_table(&lua, e.into())?),
+            }
+        }
+    }
+}
+
 fn get_jupyter_client(jupyter_base_url: &str) -> Result<JupyterClient, JupyterRunnerError> {
     let client = JupyterClient::new(jupyter_base_url, None, None)?;
     Ok(client)
@@ -105,13 +123,13 @@ fn list_running_kernels(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTab
     {
         Err(e) => Ok(to_error_table(&lua, e.into())?),
         Ok(kernels) => {
-            let kernel_names = kernels
-                .into_iter()
-                .map(|kernel| kernel.name)
-                .collect::<Vec<String>>();
+            let kernel_table = lua.create_table()?;
+            for each in kernels.into_iter() {
+                kernel_table.set(each.id, each.name)?;
+            }
 
             let response_table = lua.create_table()?;
-            response_table.set(RESEPONSE_TABLE_KEY_DATA, kernel_names)?;
+            response_table.set(RESEPONSE_TABLE_KEY_DATA, kernel_table)?;
             Ok(response_table)
         }
     }
@@ -230,6 +248,7 @@ fn librun_jupyter(lua: &Lua) -> LuaResult<LuaTable> {
 
     exports.set("start_kernel", lua.create_function(start_kernel)?)?;
     exports.set("interrupt_kernel", lua.create_function(interrupt_kernel)?)?;
+    exports.set("delete_kernel", lua.create_function(delete_kernel)?)?;
     exports.set(
         "list_running_kernels",
         lua.create_function(list_running_kernels)?,

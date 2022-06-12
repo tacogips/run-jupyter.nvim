@@ -3,10 +3,12 @@ TEST_FILTER:=
 build:
 	cargo build --release
 	cp ./target/release/librun_jupyter.so lua/librun_jupyter.so
+	rm -rf ./target
 
 build-dev:
 	cargo build
 	cp ./target/debug/librun_jupyter.so lua/librun_jupyter.so
+	rm -rf ./target
 
 gitsubmodule:
 	git submodule update --recursive
