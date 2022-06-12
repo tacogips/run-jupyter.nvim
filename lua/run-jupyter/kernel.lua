@@ -12,7 +12,7 @@ local function get_all_kernel_names()
 	return jupyter_client.list_kernel_names(config.jupyter.endpoint)
 end
 
-function M.open_start_kernel_selection()
+local function running_kernel_candidates()
 	local running_kernel_table = {}
 	local result = {}
 	local running_kernel_data = get_running_kernels()
@@ -40,7 +40,14 @@ function M.open_start_kernel_selection()
 	return result
 end
 
-return M
+function M.open_start_kernel_selection()
+	local kernels = running_kernel_candidates()
+	for k, v in pairs(kernels) do
+		print(v)
+	end
+
+	return M
+end
 
 --window.output_result("aaa\nbbb")
 --window.close_result_window()

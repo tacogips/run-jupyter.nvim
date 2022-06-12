@@ -1,5 +1,6 @@
 local config = require("run-jupyter.config")
 local window = require("run-jupyter.window")
+local kernel = require("run-jupyter.kernel")
 
 local M = {}
 function M.setup(user_config)
@@ -8,11 +9,7 @@ end
 
 M.close_result_window = window.close_result_window
 
-
-function M.open_start_kernel_selection()
-
-
-return M
+M.open_start_kernel_selection = kernel.open_start_kernel_selection
 
 --        _, lineno_begin, colno_begin, _ = self.nvim.funcs.getpos("'[")
 --        _, lineno_end,   colno_end,   _ = self.nvim.funcs.getpos("']")
