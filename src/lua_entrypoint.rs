@@ -229,7 +229,7 @@ fn librun_jupyter(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
 
     exports.set("start_kernel", lua.create_function(start_kernel)?)?;
-    exports.set("interuppt_kernel", lua.create_function(interrupt_kernel)?)?;
+    exports.set("interrupt_kernel", lua.create_function(interrupt_kernel)?)?;
     exports.set(
         "list_running_kernels",
         lua.create_function(list_running_kernels)?,

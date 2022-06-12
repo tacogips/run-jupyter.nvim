@@ -8,8 +8,10 @@ function M.setup(user_config)
 end
 
 M.close_result_window = window.close_result_window
-
 M.open_start_kernel_selection = kernel.open_start_kernel_selection
+M.open_interrupt_kernel_selection = kernel.open_interrupt_kernel_selection
+
+return M
 
 --        _, lineno_begin, colno_begin, _ = self.nvim.funcs.getpos("'[")
 --        _, lineno_end,   colno_end,   _ = self.nvim.funcs.getpos("']")
