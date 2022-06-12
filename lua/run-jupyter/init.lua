@@ -1,14 +1,22 @@
 local config = require("run-jupyter.config")
 local window = require("run-jupyter.window")
+
 local M = {}
 function M.setup(user_config)
 	config.build(user_config)
 end
 
-window.output_result("aaa\nbbb")
+M.close_result_window = window.close_result_window
+
+
+function M.open_start_kernel_selection()
+
 
 return M
 
+--        _, lineno_begin, colno_begin, _ = self.nvim.funcs.getpos("'[")
+--        _, lineno_end,   colno_end,   _ = self.nvim.funcs.getpos("']")
+--
 --local jupyter_client = require("librun_jupyter")
 --
 --print("aaa")

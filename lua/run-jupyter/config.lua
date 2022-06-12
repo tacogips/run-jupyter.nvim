@@ -3,6 +3,9 @@ local config = {
 	jupyter = {
 		endpoint = "http://localhost:8888",
 	},
+	output = {
+		image_view_cmd = nil,
+	},
 }
 
 function M.build(user_config)

@@ -11,24 +11,21 @@ local function win_info()
 	return info
 end
 
-local function result_window_opts()
-	local w_padding = 6
-	local h_padding = 6
-	local info = win_info()
-	local width = math.max(info.width - (w_padding * 2), 1)
-	local height = math.max(info.height - (h_padding * 2), 1)
-	local row = math.ceil((info.height - height) / 2)
-	local col = w_padding
+local function result_window_opts(height)
+	local windows_info = win_info()
+	local width = windows_info.height
+	local row, _ = unpack(api.nvim_win_get_cursor(0))
 
 	local opts = {
 		style = "minimal",
 		relative = "win",
-		border = "solid",
+		border = "none",
 		width = width,
 		height = height,
 		row = row,
-		col = col,
+		col = 0,
 		noautocmd = true,
+		focusable = false,
 	}
 	return opts
 end
@@ -54,34 +51,47 @@ local function close_window_if_exists()
 	end
 end
 
-local function create_result_buffer()
+local function create_result_buffer(height)
 	close_window_if_exists()
 
-	local win_opts = result_window_opts()
+	local win_opts = result_window_opts(height)
 	local bufnr = api.nvim_create_buf(false, true)
 	api.nvim_buf_set_option(bufnr, "filetype", "run_jupyter_result")
-	api.nvim_buf_set_keymap(bufnr, "n", "<Esc><Esc>", "<C-n>:lua vim.api.nvim_win_close(0, true)<CR>", {
-
-		silent = true,
-	})
 
 	local win = api.nvim_open_win(bufnr, true, win_opts)
 	api.nvim_win_set_option(win, "winblend", 10)
 	return bufnr
 end
 
-local function output_contents(bufnr, contents)
+local function contents_to_table(contents)
 	local output = {}
 	for each in contents:gmatch("[^\r\n]+") do
 		table.insert(output, each)
 	end
+	return output
+end
 
-	api.nvim_buf_set_text(bufnr, 0, 0, 0, 0, output)
+local function output_contents(bufnr, contents_table)
+	api.nvim_buf_set_text(bufnr, 0, 0, 0, 0, contents_table)
+end
+
+local function table_length(table)
+	local count = 0
+	for _ in pairs(table) do
+		count = count + 1
+	end
+	return count
+end
+
+function M.close_result_window()
+	close_window_if_exists()
 end
 
 function M.output_result(contents)
-	local bufnr = create_result_buffer()
-	output_contents(bufnr, contents)
+	local contents_table = contents_to_table(contents)
+	local height = table_length(contents_table)
+	local bufnr = create_result_buffer(height)
+	output_contents(bufnr, contents_table)
 end
 
 return M
