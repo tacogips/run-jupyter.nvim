@@ -7,7 +7,7 @@ local finders = require("telescope.finders")
 local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
-local status = { current = nil }
+local status = { current_kernel_id = nil }
 
 local M = {}
 local running_kernel_surffix = " <running>"
@@ -157,6 +157,35 @@ function M.open_kill_kernel_selection()
 	selector()
 end
 
+function M.switch_kernel()
+	local running_kernel_array = get_running_kernel_array()
+
+	if not running_kernel_array then
+		return nil
+	end
+
+	local selector = function(opts)
+		opts = opts or {}
+		pickers.new(opts, {
+			prompt_title = "kernel to kill",
+			finder = finders.new_table({
+				results = running_kernel_array,
+			}),
+			sorter = conf.generic_sorter(opts),
+			attach_mappings = function(prompt_bufnr, map)
+				actions.select_default:replace(function()
+					actions.close(prompt_bufnr)
+					local selection = action_state.get_selected_entry()
+					local selected_kernel = selection[1]
+					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "")
+					delete_kernel(selected_kernel_id)
+				end)
+				return true
+			end,
+		}):find()
+	end
+
+	selector()
+end
+
 return M
---window.output_result("aaa\nbbb")
---window.close_result_window()

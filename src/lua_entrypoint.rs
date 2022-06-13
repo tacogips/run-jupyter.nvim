@@ -96,7 +96,7 @@ fn get_jupyter_client(jupyter_base_url: &str) -> Result<JupyterClient, JupyterRu
     Ok(client)
 }
 
-async fn get_kernel_client(
+async fn get_kernel_client_by_id(
     jupyter_base_url: &str,
     kernel_name: &str,
 ) -> Result<Option<KernelApiClient>, JupyterRunnerError> {
@@ -163,11 +163,11 @@ fn list_kernel_names(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTable<
 
 fn run_code(
     lua: &Lua,
-    (jupyter_base_url, kernel_name, code): (String, String, String),
+    (jupyter_base_url, kernel_id, code): (String, String, String),
 ) -> LuaResult<LuaTable<'_>> {
     let kernel_client = match Runtime::new()
         .unwrap()
-        .block_on(get_kernel_client(&jupyter_base_url, &kernel_name))
+        .block_on(get_kernel_client_by_id(&jupyter_base_url, &kernel_id))
     {
         Err(e) => return Ok(to_error_table(&lua, e.into())?),
         Ok(kernel_client) => match kernel_client {
