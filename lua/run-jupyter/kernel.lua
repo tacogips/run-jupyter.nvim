@@ -100,7 +100,17 @@ function M.open_start_kernel_selection()
 					local selection = action_state.get_selected_entry()
 					local selected_kernel = selection[1]
 					if not string.find(selected_kernel, running_kernel_surffix) then
-						start_kernel(selected_kernel)
+						local kernel_result = start_kernel(selected_kernel)
+
+						for k, v in kernel_result do
+							if k == "error" then
+								window.output_result("Error:\n" .. v)
+								return nil
+							elseif k == "data" then
+								local kernel_id = v
+								status.current_kernel_id = kernel_id
+							end
+						end
 					end
 				end)
 				return true
@@ -121,7 +131,11 @@ local function get_running_kernel_array()
 	end
 	local running_kernel_array = {}
 	for id, name in pairs(running_kernel_table) do
-		table.insert(running_kernel_array, id .. "<" .. name .. ">")
+		local selecting_sign = ""
+		if id == status.current_kernel_id then
+			selecting_sign = "*"
+		end
+		table.insert(running_kernel_array, id .. "<" .. name .. ">" .. " " .. selecting_sign)
 	end
 	return running_kernel_array
 end
@@ -148,6 +162,9 @@ function M.open_kill_kernel_selection()
 					local selected_kernel = selection[1]
 					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "")
 					delete_kernel(selected_kernel_id)
+					if status.current_kernel_id == selected_kernel_id then
+						status.current_kernel_id = nil
+					end
 				end)
 				return true
 			end,
@@ -157,7 +174,7 @@ function M.open_kill_kernel_selection()
 	selector()
 end
 
-function M.switch_kernel()
+function M.open_switch_kernel_selection()
 	local running_kernel_array = get_running_kernel_array()
 
 	if not running_kernel_array then
@@ -167,7 +184,7 @@ function M.switch_kernel()
 	local selector = function(opts)
 		opts = opts or {}
 		pickers.new(opts, {
-			prompt_title = "kernel to kill",
+			prompt_title = "switch kernel",
 			finder = finders.new_table({
 				results = running_kernel_array,
 			}),
@@ -178,7 +195,7 @@ function M.switch_kernel()
 					local selection = action_state.get_selected_entry()
 					local selected_kernel = selection[1]
 					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "")
-					delete_kernel(selected_kernel_id)
+					status.current_kernel_id = selected_kernel_id
 				end)
 				return true
 			end,

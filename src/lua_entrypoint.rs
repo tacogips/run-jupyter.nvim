@@ -48,7 +48,11 @@ fn start_kernel(
                 .unwrap()
                 .block_on(jupyter_client.start_kernel(kernel_req))
             {
-                Ok(()) => Ok(empty_table(&lua)?),
+                Ok(kernel) => {
+                    let response_table = lua.create_table()?;
+                    response_table.set(RESEPONSE_TABLE_KEY_DATA, kernel.id)?;
+                    Ok(empty_table(&lua)?)
+                }
                 Err(e) => Ok(to_error_table(&lua, e.into())?),
             }
         }
@@ -98,16 +102,15 @@ fn get_jupyter_client(jupyter_base_url: &str) -> Result<JupyterClient, JupyterRu
 
 async fn get_kernel_client_by_id(
     jupyter_base_url: &str,
-    kernel_name: &str,
-) -> Result<Option<KernelApiClient>, JupyterRunnerError> {
+    kernel_id: &str,
+) -> Result<Option<(KernelApiClient, Kernel)>, JupyterRunnerError> {
     let jupyter_client = get_jupyter_client(jupyter_base_url)?;
 
-    let kernels = jupyter_client.get_running_kernels().await?;
+    let kernel = jupyter_client.get_running_kernel(kernel_id).await?;
 
-    let kernel = kernels.iter().find(|each| each.name == kernel_name);
     match kernel {
-        None => Err(JupyterRunnerError::KernelNotFound(kernel_name.to_string())),
-        Some(kernel) => Ok(Some(jupyter_client.new_kernel_client(kernel)?)),
+        None => Err(JupyterRunnerError::KernelNotFound(kernel_id.to_string())),
+        Some(kernel) => Ok(Some((jupyter_client.new_kernel_client(&kernel)?, kernel))),
     }
 }
 
@@ -165,7 +168,7 @@ fn run_code(
     lua: &Lua,
     (jupyter_base_url, kernel_id, code): (String, String, String),
 ) -> LuaResult<LuaTable<'_>> {
-    let kernel_client = match Runtime::new()
+    let (kernel_client, kernel) = match Runtime::new()
         .unwrap()
         .block_on(get_kernel_client_by_id(&jupyter_base_url, &kernel_id))
     {
@@ -181,7 +184,7 @@ fn run_code(
         },
     };
 
-    let code = if let Ok(parsable_kernel) = ParsableKernel::try_from_str(&kernel_name) {
+    let code = if let Ok(parsable_kernel) = ParsableKernel::try_from_str(&kernel.name) {
         let parsed_code = match parsable_kernel {
             ParsableKernel::Rust => match RustParser.parse(&code) {
                 Ok(parsed_code) => parsed_code,
