@@ -11,10 +11,12 @@ local function win_info()
 	return info
 end
 
-local function result_window_opts(height)
+local function result_window_opts(height, row_pos)
 	local windows_info = win_info()
 	local width = windows_info.width
-	local row, _ = unpack(api.nvim_win_get_cursor(0))
+	if row_pos then
+		row_pos, _ = unpack(api.nvim_win_get_cursor(0))
+	end
 
 	local opts = {
 		style = "minimal",
@@ -22,7 +24,7 @@ local function result_window_opts(height)
 		border = "none",
 		width = width,
 		height = height,
-		row = row,
+		row = row_pos,
 		col = 0,
 		noautocmd = true,
 		focusable = false,
@@ -51,13 +53,13 @@ local function close_window_if_exists()
 	end
 end
 
-local function create_result_buffer(height)
+local function create_result_buffer(height, row_pos)
 	close_window_if_exists()
 
 	local bufnr = api.nvim_create_buf(false, true)
 	api.nvim_buf_set_option(bufnr, "filetype", "run_jupyter_result")
 
-	local win_opts = result_window_opts(height)
+	local win_opts = result_window_opts(height, row_pos)
 	local win = api.nvim_open_win(bufnr, false, win_opts)
 	api.nvim_win_set_option(win, "winblend", 10)
 	return bufnr
@@ -90,7 +92,14 @@ end
 function M.output_result(contents)
 	local contents_table = contents_to_table(contents)
 	local height = table_length(contents_table)
-	local bufnr = create_result_buffer(height)
+	local bufnr = create_result_buffer(height, nil)
+	output_contents(bufnr, contents_table)
+end
+
+function M.output_result_with_position(contents, row_pos)
+	local contents_table = contents_to_table(contents)
+	local height = table_length(contents_table)
+	local bufnr = create_result_buffer(height, row_pos)
 	output_contents(bufnr, contents_table)
 end
 

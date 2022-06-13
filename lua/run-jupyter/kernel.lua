@@ -12,6 +12,9 @@ local status = { current_kernel_id = nil }
 local M = {}
 local running_kernel_surffix = " <running>"
 
+local fn = vim.fn
+local api = vim.api
+
 local function get_running_kernels()
 	return jupyter_client.list_running_kernels(config.get().jupyter.endpoint)
 end
@@ -22,6 +25,10 @@ end
 
 local function start_kernel(kernel_name)
 	return jupyter_client.start_kernel(config.get().jupyter.endpoint, kernel_name)
+end
+
+local function send_code_to_kernel(kernel_id, code)
+	return jupyter_client.run_code(config.get().jupyter.endpoint, kernel_id, code)
 end
 
 local function delete_kernel(kernel_id)
@@ -160,7 +167,7 @@ function M.open_kill_kernel_selection()
 					actions.close(prompt_bufnr)
 					local selection = action_state.get_selected_entry()
 					local selected_kernel = selection[1]
-					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "")
+					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "") -- TODO(tacogips) too ugly
 					delete_kernel(selected_kernel_id)
 					if status.current_kernel_id == selected_kernel_id then
 						status.current_kernel_id = nil
@@ -194,7 +201,7 @@ function M.open_switch_kernel_selection()
 					actions.close(prompt_bufnr)
 					local selection = action_state.get_selected_entry()
 					local selected_kernel = selection[1]
-					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "")
+					local selected_kernel_id = string.gsub(selected_kernel, "<.*", "") -- TODO(tacogips) too ugly
 					status.current_kernel_id = selected_kernel_id
 				end)
 				return true
@@ -203,6 +210,66 @@ function M.open_switch_kernel_selection()
 	end
 
 	selector()
+end
+
+local function run_code(code)
+	local result = {}
+	if not status.current_kernel_id then
+		result["error"] = "kernel not selected"
+		return result
+	end
+
+	return send_code_to_kernel(status.current_kernel_id, code)
+end
+
+-- thanks to  https://github.com/ibhagwan/nvim-lua/blob/main/lua/utils.lua
+local function get_visual_selection_lines()
+	local _, csrow, cscol, cerow, cecol
+	local mode = fn.mode()
+	if mode == "v" or mode == "V" or mode == "" then
+		-- if we are in visual mode use the live position
+		_, csrow, cscol, _ = unpack(fn.getpos("."))
+		_, cerow, cecol, _ = unpack(fn.getpos("v"))
+		if mode == "V" then
+			cscol, cecol = 0, 999
+		end
+		api.nvim_feedkeys(api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+	else
+		-- otherwise, use the last known visual position
+		_, csrow, cscol, _ = unpack(vim.fn.getpos("'<"))
+		_, cerow, cecol, _ = unpack(vim.fn.getpos("'>"))
+	end
+	-- swap vars if needed
+	if cerow < csrow then
+		csrow, cerow = cerow, csrow
+	end
+	if cecol < cscol then
+		cscol, cecol = cecol, cscol
+	end
+	local lines = fn.getline(csrow, cerow)
+	-- local n = cerow-csrow+1
+	local n = #lines
+	if n <= 0 then
+		return ""
+	end
+	return table.concat(lines, "\n")
+end
+
+function M.run_selecting_code()
+	local selection_code = get_visual_selection_lines()
+
+	local result = run_code(selection_code)
+
+	for k, v in pairs(result) do
+		print("--b", k, v)
+	end
+	for k, v in pairs(result) do
+		if k == "error" then
+			window.output_result("Error:\n" .. v)
+		elseif k == "text" then
+			window.output_result(v)
+		end
+	end
 end
 
 return M
