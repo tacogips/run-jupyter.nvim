@@ -58,7 +58,7 @@ local function run_kernel_candidates()
 	end
 
 	for _, name in pairs(running_kernel_table) do
-		table.insert(running_kernel_name_table, name)
+		running_kernel_name_table[name] = name
 	end
 
 	local all_kernels = get_all_kernel_names()
@@ -136,7 +136,7 @@ function M.open_kill_kernel_selection()
 	local selector = function(opts)
 		opts = opts or {}
 		pickers.new(opts, {
-			prompt_title = "interrupt kernel",
+			prompt_title = "kernel to kill",
 			finder = finders.new_table({
 				results = running_kernel_array,
 			}),
