@@ -45,6 +45,7 @@ impl<'a> CommentInterpreter<'a> {
     fn at_end(&self) -> bool {
         self.current_index >= self.comment.len()
     }
+
     fn chomp_until_line_end(&mut self) -> Option<&[u8]> {
         if self.at_end() {
             return None;
