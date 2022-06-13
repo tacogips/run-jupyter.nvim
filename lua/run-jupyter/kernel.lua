@@ -225,26 +225,20 @@ end
 
 -- thanks to  https://github.com/ibhagwan/nvim-lua/blob/main/lua/utils.lua
 local function get_selection_lines()
-	local _, column_start_row, colum_start_col, column_end_row, colum_end_col
+	local _, column_start_row, column_end_row
 	local mode = fn.mode()
 	if mode == "v" or mode == "V" or mode == "" then
-		_, column_start_row, colum_start_col, _ = unpack(fn.getpos("."))
-		_, column_end_row, colum_end_col, _ = unpack(fn.getpos("v"))
-		if mode == "V" then
-			colum_start_col, colum_end_col = 0, 999
-		end
+		_, column_start_row, _, _ = unpack(fn.getpos("."))
+		_, column_end_row, _, _ = unpack(fn.getpos("v"))
 		api.nvim_feedkeys(api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
 	else
 		-- currnet row
-		column_start_row, colum_start_col = unpack(api.nvim_win_get_cursor(0))
-		column_end_row, colum_end_col = column_start_row, colum_start_col
+		column_start_row, _ = unpack(api.nvim_win_get_cursor(0))
+		column_end_row = column_start_row
 	end
 
 	if column_end_row < column_start_row then
 		column_start_row, column_end_row = column_end_row, column_start_row
-	end
-	if colum_end_col < colum_start_col then
-		colum_start_col, colum_end_col = colum_end_col, colum_start_col
 	end
 	local lines = fn.getline(column_start_row, column_end_row)
 
