@@ -13,7 +13,7 @@ end
 
 local function result_window_opts(height)
 	local windows_info = win_info()
-	local width = windows_info.height
+	local width = windows_info.width
 	local row, _ = unpack(api.nvim_win_get_cursor(0))
 
 	local opts = {
@@ -54,11 +54,11 @@ end
 local function create_result_buffer(height)
 	close_window_if_exists()
 
-	local win_opts = result_window_opts(height)
 	local bufnr = api.nvim_create_buf(false, true)
 	api.nvim_buf_set_option(bufnr, "filetype", "run_jupyter_result")
 
-	local win = api.nvim_open_win(bufnr, true, win_opts)
+	local win_opts = result_window_opts(height)
+	local win = api.nvim_open_win(bufnr, false, win_opts)
 	api.nvim_win_set_option(win, "winblend", 10)
 	return bufnr
 end

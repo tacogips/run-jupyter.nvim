@@ -7,6 +7,7 @@ local finders = require("telescope.finders")
 local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
+local status = { current = nil }
 
 local M = {}
 local running_kernel_surffix = " <running>"
@@ -33,10 +34,10 @@ local function get_running_kernels_or_error()
 	for k, v in pairs(running_kernel_data) do
 		if k == "error" then
 			window.output_result("Error:\n" .. v)
-			return
+			return nil
 		elseif k == "data" then
-			for k, v in pairs(v) do
-				running_kernel_table[k] = v
+			for kernel_id, kernel_name in pairs(v) do
+				running_kernel_table[kernel_id] = kernel_name
 			end
 		end
 	end
@@ -44,11 +45,14 @@ local function get_running_kernels_or_error()
 	return running_kernel_table
 end
 
-local function running_kernel_candidates()
+local function run_kernel_candidates()
 	local result = {}
 
 	local running_kernel_name_table = {}
 	local running_kernel_table = get_running_kernels_or_error()
+	if not running_kernel_table then
+		return nil
+	end
 	if running_kernel_table["error"] ~= nil then
 		return running_kernel_table
 	end
@@ -63,11 +67,11 @@ local function running_kernel_candidates()
 			window.output_result("Error:\n" .. v)
 			return
 		elseif k == "data" then
-			for k, v in pairs(v) do
-				if running_kernel_name_table[v] ~= nil then
-					table.insert(result, v .. running_kernel_surffix)
+			for _, kernel_name in pairs(v) do
+				if running_kernel_name_table[kernel_name] ~= nil then
+					table.insert(result, kernel_name .. running_kernel_surffix)
 				else
-					table.insert(result, v)
+					table.insert(result, kernel_name)
 				end
 			end
 		end
@@ -77,12 +81,17 @@ local function running_kernel_candidates()
 end
 
 function M.open_start_kernel_selection()
+	local kernel_names = run_kernel_candidates()
+	if not kernel_names then
+		return
+	end
+
 	local selector = function(opts)
 		opts = opts or {}
 		pickers.new(opts, {
 			prompt_title = "start kernel",
 			finder = finders.new_table({
-				results = running_kernel_candidates(),
+				results = kernel_names,
 			}),
 			sorter = conf.generic_sorter(opts),
 			attach_mappings = function(prompt_bufnr, map)
@@ -102,14 +111,26 @@ function M.open_start_kernel_selection()
 	selector()
 end
 
-function M.open_kill_kernel_selection()
+local function get_running_kernel_array()
 	local running_kernel_table = get_running_kernels_or_error()
+	if not running_kernel_table then
+		return nil
+	end
 	if running_kernel_table["error"] ~= nil then
 		return running_kernel_table
 	end
 	local running_kernel_array = {}
 	for id, name in pairs(running_kernel_table) do
 		table.insert(running_kernel_array, id .. "<" .. name .. ">")
+	end
+	return running_kernel_array
+end
+
+function M.open_kill_kernel_selection()
+	local running_kernel_array = get_running_kernel_array()
+
+	if not running_kernel_array then
+		return nil
 	end
 
 	local selector = function(opts)
