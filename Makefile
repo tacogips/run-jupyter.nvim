@@ -8,7 +8,6 @@ build:
 build-dev:
 	cargo build
 	cp ./target/debug/librun_jupyter.so lua/librun_jupyter.so
-	rm -rf ./target
 
 gitsubmodule:
 	git submodule update --recursive

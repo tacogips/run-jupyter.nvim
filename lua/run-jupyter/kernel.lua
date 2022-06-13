@@ -14,6 +14,7 @@ local running_kernel_surffix = " <running>"
 
 local fn = vim.fn
 local api = vim.api
+local schedule = vim.schedule
 
 local function get_running_kernels()
 	return jupyter_client.list_running_kernels(config.get().jupyter.endpoint)
@@ -106,10 +107,10 @@ function M.open_start_kernel_selection()
 					actions.close(prompt_bufnr)
 					local selection = action_state.get_selected_entry()
 					local selected_kernel = selection[1]
+
 					if not string.find(selected_kernel, running_kernel_surffix) then
 						local kernel_result = start_kernel(selected_kernel)
-
-						for k, v in kernel_result do
+						for k, v in pairs(kernel_result) do
 							if k == "error" then
 								window.output_result("Error:\n" .. v)
 								return nil
@@ -223,31 +224,30 @@ local function run_code(code)
 end
 
 -- thanks to  https://github.com/ibhagwan/nvim-lua/blob/main/lua/utils.lua
-local function get_visual_selection_lines()
-	local _, csrow, cscol, cerow, cecol
+local function get_selection_lines()
+	local _, column_start_row, colum_start_col, column_end_row, colum_end_col
 	local mode = fn.mode()
 	if mode == "v" or mode == "V" or mode == "" then
-		-- if we are in visual mode use the live position
-		_, csrow, cscol, _ = unpack(fn.getpos("."))
-		_, cerow, cecol, _ = unpack(fn.getpos("v"))
+		_, column_start_row, colum_start_col, _ = unpack(fn.getpos("."))
+		_, column_end_row, colum_end_col, _ = unpack(fn.getpos("v"))
 		if mode == "V" then
-			cscol, cecol = 0, 999
+			colum_start_col, colum_end_col = 0, 999
 		end
 		api.nvim_feedkeys(api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
 	else
-		-- otherwise, use the last known visual position
-		_, csrow, cscol, _ = unpack(vim.fn.getpos("'<"))
-		_, cerow, cecol, _ = unpack(vim.fn.getpos("'>"))
+		-- currnet row
+		column_start_row, colum_start_col = unpack(api.nvim_win_get_cursor(0))
+		column_end_row, colum_end_col = column_start_row, colum_start_col
 	end
-	-- swap vars if needed
-	if cerow < csrow then
-		csrow, cerow = cerow, csrow
+
+	if column_end_row < column_start_row then
+		column_start_row, column_end_row = column_end_row, column_start_row
 	end
-	if cecol < cscol then
-		cscol, cecol = cecol, cscol
+	if colum_end_col < colum_start_col then
+		colum_start_col, colum_end_col = colum_end_col, colum_start_col
 	end
-	local lines = fn.getline(csrow, cerow)
-	-- local n = cerow-csrow+1
+	local lines = fn.getline(column_start_row, column_end_row)
+
 	local n = #lines
 	if n <= 0 then
 		return ""
@@ -256,20 +256,30 @@ local function get_visual_selection_lines()
 end
 
 function M.run_selecting_code()
-	local selection_code = get_visual_selection_lines()
+	local selection_code = get_selection_lines()
 
-	local result = run_code(selection_code)
-
-	for k, v in pairs(result) do
-		print("--b", k, v)
-	end
-	for k, v in pairs(result) do
-		if k == "error" then
-			window.output_result("Error:\n" .. v)
-		elseif k == "text" then
-			window.output_result(v)
+	local row_pos, _ = unpack(api.nvim_win_get_cursor(0))
+	print("running the code...")
+	schedule(function()
+		local result = run_code(selection_code)
+		for k, v in pairs(result) do
+			if k == "error" then
+				window.output_result_with_position("Error:\n" .. v, row_pos)
+			elseif k == "text" then
+				window.output_result_with_position("Ok: " .. v, row_pos)
+			elseif k == "png" then
+				--window.output_result_with_position(v, row_pos)
+			end
 		end
-	end
+	end)
+
+	--for k, v in pairs(result) do
+	--	if k == "error" then
+	--		window.output_result("Error:\n" .. v)
+	--	elseif k == "text" then
+	--		window.output_result(v)
+	--	end
+	--end
 end
 
 return M

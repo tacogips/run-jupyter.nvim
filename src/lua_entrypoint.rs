@@ -51,7 +51,7 @@ fn start_kernel(
                 Ok(kernel) => {
                     let response_table = lua.create_table()?;
                     response_table.set(RESEPONSE_TABLE_KEY_DATA, kernel.id)?;
-                    Ok(empty_table(&lua)?)
+                    Ok(response_table)
                 }
                 Err(e) => Ok(to_error_table(&lua, e.into())?),
             }
@@ -150,12 +150,13 @@ fn list_kernel_names(lua: &Lua, jupyter_base_url: String) -> LuaResult<LuaTable<
     {
         Err(e) => Ok(to_error_table(&lua, e.into())?),
         Ok(kernels) => {
-            let kernel_names = kernels
+            let mut kernel_names = kernels
                 .kernelspecs
                 .values()
                 .into_iter()
                 .map(|kernel| kernel.name.to_string())
                 .collect::<Vec<String>>();
+            kernel_names.sort();
 
             let response_table = lua.create_table()?;
             response_table.set(RESEPONSE_TABLE_KEY_DATA, kernel_names)?;
